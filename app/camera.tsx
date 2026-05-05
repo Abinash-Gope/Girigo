@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Platform, Dimensions, Image } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Video, ResizeMode } from 'expo-av';
-import { useRouter } from 'expo-router';
+import { Video, ResizeMode, Audio } from 'expo-av';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { startCurse } from '../utils/curse-manager';
+
+const uploadSound = require('../assets/sound-effects.mp3');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHONE_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 380);
@@ -11,6 +13,7 @@ const PHONE_HEIGHT = PHONE_WIDTH * 1.8;
 
 export default function CameraScreen() {
   const router = useRouter();
+  const { name, wish } = useLocalSearchParams<{ name: string; wish: string }>();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const [isRecording, setIsRecording] = useState(false);
@@ -18,6 +21,17 @@ export default function CameraScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const videoRef = useRef<any>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const isMounted = useRef(true);
+
+  React.useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      if (soundRef.current) {
+        soundRef.current.stopAsync().then(() => soundRef.current?.unloadAsync());
+      }
+    };
+  }, []);
 
   if (!cameraPermission || !micPermission) {
     return <View style={styles.container} />;
@@ -82,14 +96,29 @@ export default function CameraScreen() {
     setRecordedVideoUri(null);
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     setIsUploading(true);
+    try {
+      const { sound } = await Audio.Sound.createAsync(uploadSound);
+      if (isMounted.current) {
+        soundRef.current = sound;
+        await sound.setIsLoopingAsync(true);
+        await sound.playAsync();
+      } else {
+        await sound.unloadAsync();
+      }
+    } catch (e) {
+      console.warn('Failed to play upload sound:', e);
+    }
   };
 
   const handleAnimationStatus = async (status: any) => {
     if (status.didJustFinish) {
-      // The wish is granted and the curse begins after the animation finishes
-      await startCurse();
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+      }
+      // The wish is granted and the curse begins — pass name & wish to save to Supabase
+      await startCurse(name, wish);
       router.replace('/timer');
     }
   };

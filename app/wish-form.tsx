@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useRef, useCallback } from 'react';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, Platform, KeyboardAvoidingView, ScrollView, Animated } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 export default function WishForm() {
   const router = useRouter();
@@ -8,6 +9,61 @@ export default function WishForm() {
   const [birthdate, setBirthdate] = useState('');
   const [wish, setWish] = useState('');
   const [errors, setErrors] = useState<{name?: string, birthdate?: string, wish?: string}>({});
+
+  const [nameLabel, setNameLabel] = useState('이름 (Name)');
+  const [birthLabel, setBirthLabel] = useState('생년월일 (Birthdate)');
+  const [wishLabel, setWishLabel] = useState('소원 (Wish)');
+
+  const nameShake = useRef(new Animated.Value(0)).current;
+  const birthShake = useRef(new Animated.Value(0)).current;
+  const wishShake = useRef(new Animated.Value(0)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      let tName: NodeJS.Timeout, tBirth: NodeJS.Timeout, tWish: NodeJS.Timeout;
+      
+      const corruptLabel = (
+        setLabel: React.Dispatch<React.SetStateAction<string>>, 
+        normalText: string, 
+        cursedText: string,
+        timeoutRefKey: 'tName' | 'tBirth' | 'tWish'
+      ) => {
+        if (!isActive) return;
+        if (Math.random() > 0.8) {
+          setLabel(cursedText);
+          setTimeout(() => {
+            if (isActive) setLabel(normalText);
+          }, Math.random() * 200 + 50); // Flash for 50-250ms
+        }
+        const nextTime = Math.random() * 5000 + 2000;
+        if (timeoutRefKey === 'tName') tName = setTimeout(() => corruptLabel(setLabel, normalText, cursedText, timeoutRefKey), nextTime);
+        if (timeoutRefKey === 'tBirth') tBirth = setTimeout(() => corruptLabel(setLabel, normalText, cursedText, timeoutRefKey), nextTime);
+        if (timeoutRefKey === 'tWish') tWish = setTimeout(() => corruptLabel(setLabel, normalText, cursedText, timeoutRefKey), nextTime);
+      };
+
+      tName = setTimeout(() => corruptLabel(setNameLabel, '이름 (Name)', '제물 (Sacrifice)', 'tName'), 1000);
+      tBirth = setTimeout(() => corruptLabel(setBirthLabel, '생년월일 (Birthdate)', '제삿날 (Deathday)', 'tBirth'), 2500);
+      tWish = setTimeout(() => corruptLabel(setWishLabel, '소원 (Wish)', '대가 (Price)', 'tWish'), 4000);
+
+      return () => { 
+        isActive = false; 
+        clearTimeout(tName);
+        clearTimeout(tBirth);
+        clearTimeout(tWish);
+      };
+    }, [])
+  );
+
+  const triggerShake = (animVal: Animated.Value) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    Animated.sequence([
+      Animated.timing(animVal, { toValue: 3, duration: 40, useNativeDriver: true }),
+      Animated.timing(animVal, { toValue: -3, duration: 40, useNativeDriver: true }),
+      Animated.timing(animVal, { toValue: 3, duration: 40, useNativeDriver: true }),
+      Animated.timing(animVal, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]).start();
+  };
 
   const validate = () => {
     let newErrors: {name?: string, birthdate?: string, wish?: string} = {};
@@ -36,7 +92,7 @@ export default function WishForm() {
 
   const handleNext = () => {
     if (validate()) {
-      router.push('/camera');
+      router.push({ pathname: '/camera', params: { name, wish } });
     }
   };
 
@@ -54,49 +110,58 @@ export default function WishForm() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>이름 (Name)</Text>
-              <TextInput 
-                style={[styles.input, errors.name && styles.inputError]} 
-                placeholderTextColor="#444"
-                placeholder="본명을 입력하세요"
-                value={name}
-                onChangeText={(text) => {
-                  setName(text);
-                  if (errors.name) setErrors({...errors, name: undefined});
-                }}
-              />
+              <Text style={[styles.label, nameLabel !== '이름 (Name)' && styles.cursedLabel]}>{nameLabel}</Text>
+              <Animated.View style={{ transform: [{ translateX: nameShake }] }}>
+                <TextInput 
+                  style={[styles.input, errors.name && styles.inputError]} 
+                  placeholderTextColor="#444"
+                  placeholder="본명을 입력하세요"
+                  value={name}
+                  onChangeText={(text) => {
+                    setName(text);
+                    triggerShake(nameShake);
+                    if (errors.name) setErrors({...errors, name: undefined});
+                  }}
+                />
+              </Animated.View>
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>생년월일 (Birthdate)</Text>
-              <TextInput 
-                style={[styles.input, errors.birthdate && styles.inputError]} 
-                placeholderTextColor="#444"
-                placeholder="YYYY.MM.DD"
-                keyboardType="numbers-and-punctuation"
-                value={birthdate}
-                onChangeText={(text) => {
-                  setBirthdate(text);
-                  if (errors.birthdate) setErrors({...errors, birthdate: undefined});
-                }}
-              />
+              <Text style={[styles.label, birthLabel !== '생년월일 (Birthdate)' && styles.cursedLabel]}>{birthLabel}</Text>
+              <Animated.View style={{ transform: [{ translateX: birthShake }] }}>
+                <TextInput 
+                  style={[styles.input, errors.birthdate && styles.inputError]} 
+                  placeholderTextColor="#444"
+                  placeholder="YYYY.MM.DD"
+                  keyboardType="numbers-and-punctuation"
+                  value={birthdate}
+                  onChangeText={(text) => {
+                    setBirthdate(text);
+                    triggerShake(birthShake);
+                    if (errors.birthdate) setErrors({...errors, birthdate: undefined});
+                  }}
+                />
+              </Animated.View>
               {errors.birthdate && <Text style={styles.errorText}>{errors.birthdate}</Text>}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>소원 (Wish)</Text>
-              <TextInput 
-                style={[styles.input, styles.textArea, errors.wish && styles.inputError]} 
-                placeholderTextColor="#444"
-                placeholder="어떤 대가를 치르더라도 이루고 싶은 소원..."
-                multiline
-                value={wish}
-                onChangeText={(text) => {
-                  setWish(text);
-                  if (errors.wish) setErrors({...errors, wish: undefined});
-                }}
-              />
+              <Text style={[styles.label, wishLabel !== '소원 (Wish)' && styles.cursedLabel]}>{wishLabel}</Text>
+              <Animated.View style={{ transform: [{ translateX: wishShake }] }}>
+                <TextInput 
+                  style={[styles.input, styles.textArea, errors.wish && styles.inputError]} 
+                  placeholderTextColor="#444"
+                  placeholder="어떤 대가를 치르더라도 이루고 싶은 소원..."
+                  multiline
+                  value={wish}
+                  onChangeText={(text) => {
+                    setWish(text);
+                    triggerShake(wishShake);
+                    if (errors.wish) setErrors({...errors, wish: undefined});
+                  }}
+                />
+              </Animated.View>
               {errors.wish && <Text style={styles.errorText}>{errors.wish}</Text>}
             </View>
           </View>
@@ -161,6 +226,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: 2,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  cursedLabel: {
+    color: '#8A0303',
+    fontStyle: 'italic',
+    fontWeight: 'bold',
   },
   input: {
     backgroundColor: '#0A0A0A',
