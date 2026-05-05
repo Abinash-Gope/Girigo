@@ -6,6 +6,12 @@ Girigo is a dark, psychological horror application built with React Native and E
 
 ![Girigo Overview](./assets/title-girigo.png)
 
+## 📥 Download the App
+
+[**⬇️ Download Girigo for Android (.apk)**](https://github.com/Abinash-Gope/Girigo/releases/latest/download/Girigo.apk)
+
+*Note: You may need to enable "Install from unknown sources" in your Android settings to install the app.*
+
 ## 🩸 Features
 
 - **Immersive Atmosphere:** Dark UI, glitching components, random screen flickers, and an eerie audio loop to create tension.
@@ -26,40 +32,7 @@ Girigo is a dark, psychological horror application built with React Native and E
 - **Framework:** [React Native](https://reactnative.dev/) / [Expo](https://expo.dev/) (SDK 54)
 - **Routing:** Expo Router
 - **Backend:** [Supabase](https://supabase.com/) (REST Client)
-- **Native APIs:**
-  - `expo-camera` / `expo-video` for media capture and playback
-  - `expo-haptics` for terrifying vibrations
-  - `expo-notifications` for scheduled local/remote lure alerts
-
-## 🚀 Quick Start (Local Development)
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/girigo.git
-   cd girigo
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Run the development server**
-   ```bash
-   npx expo start
-   ```
-   > **Note:** Because this app relies heavily on native device capabilities (Camera, Haptics, Local Notifications), you should test it on a physical device using Expo Go or a Development Build.
-
-## 📦 Building the APK
-
-This project is configured to use [EAS (Expo Application Services)](https://expo.dev/eas) to generate an optimized, 64-bit (`arm64-v8a`) direct-install APK.
-
-To generate a new APK, run:
-```bash
-eas build --platform android --profile preview
-```
-
-*Note: The app has been heavily optimized with ProGuard, R8, and Resource Shrinking to ensure the APK is tiny and lightweight.*
+- **Native APIs:** `expo-camera`, `expo-video`, `expo-haptics`, `expo-notifications`
 
 ## 👁️ Secret Admin Panel
 
@@ -70,4 +43,4 @@ To view the global ledger of all submitted wishes from Supabase:
 
 ## ⚠️ Disclaimer
 
-This is a horror-themed art project. It does not actually curse anyone, nor does it maliciously trap users on their phones. All data stored in Supabase should be handled responsibly. 
+This is a horror-themed art project. It does not actually curse anyone, nor does it maliciously trap users on their phones. All data stored in Supabase should be handled responsibly.
